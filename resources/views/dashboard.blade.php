@@ -8,9 +8,9 @@
     <x-sidebar :paymentTypes="$paymentTypes" activeSlug="" />
 
     {{-- Main Content --}}
-    <main class="flex-1 lg:ml-72 gradient-bg min-h-screen">
+    <main class="flex-1 min-w-0 lg:ml-72 gradient-bg min-h-screen">
         {{-- Header --}}
-        <header class="px-6 pt-8 pb-2 lg:px-10">
+        <header class="pl-16 pr-6 pt-8 pb-2 lg:px-10">
             <div class="max-w-6xl mx-auto">
                 <div class="flex flex-col gap-1 fade-in">
                     <div class="flex items-center gap-2 mb-1">

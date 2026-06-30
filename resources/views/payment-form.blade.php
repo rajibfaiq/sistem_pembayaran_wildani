@@ -8,8 +8,8 @@
     <x-sidebar :paymentTypes="$paymentTypes" :activeSlug="$paymentType->slug" />
 
     {{-- Main Content --}}
-    <main class="flex-1 lg:ml-72 gradient-bg min-h-screen">
-        <div class="px-6 py-8 lg:px-10">
+    <main class="flex-1 min-w-0 lg:ml-72 gradient-bg min-h-screen">
+        <div class="pl-16 pr-6 py-8 lg:px-10">
             <div class="max-w-3xl mx-auto">
 
                 {{-- Breadcrumb --}}

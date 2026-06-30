@@ -21,6 +21,7 @@ class DatabaseSeeder extends Seeder
         User::factory()->create([
             'name' => 'Test User',
             'email' => 'test@example.com',
+            'role' => 'admin',
         ]);
 
         // Payment types with specific icons and amounts
@@ -71,6 +72,16 @@ class DatabaseSeeder extends Seeder
 
         foreach ($students as $studentData) {
             $student = Student::create($studentData);
+
+            // Create student login account
+            User::create([
+                'name' => $student->nama,
+                'email' => strtolower(explode(' ', trim($student->nama))[0]).'@wildani.sch.id',
+                'password' => bcrypt('siswa123'),
+                'role' => 'student',
+                'nisn' => $student->nisn,
+                'student_id' => $student->id,
+            ]);
 
             // Create pending bills for each student (SPP + a random type)
             Bill::create([
