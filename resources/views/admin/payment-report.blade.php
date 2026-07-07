@@ -3,15 +3,13 @@
 @section('title', 'Dashboard Admin - WILDANI')
 
 @section('content')
-<div class="flex min-h-screen">
-    {{-- Sidebar --}}
-    <x-sidebar :paymentTypes="$paymentTypes" activeSlug="admin" />
+<div class="min-h-screen">
 
     {{-- Main Content --}}
-    <main class="flex-1 min-w-0 lg:ml-72 gradient-bg min-h-screen">
+    <main class="flex-1 min-w-0 gradient-bg min-h-screen">
 
         {{-- Header --}}
-        <header class="pl-16 pr-6 pt-8 pb-4 lg:px-10">
+        <header class="px-6 pt-8 pb-4 lg:px-10">
             <div class="max-w-7xl mx-auto">
                 <div class="flex flex-col gap-1 fade-in">
                     <div class="flex items-center gap-2 mb-1">
@@ -294,7 +292,6 @@
                                                 <th class="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Total</th>
                                                 <th class="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">WhatsApp</th>
                                                 <th class="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Status</th>
-                                                <th class="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Aksi</th>
                                             </tr>
                                         </thead>
                                         <tbody class="divide-y divide-gray-100">
@@ -370,24 +367,7 @@
                                                             </span>
                                                         @endif
                                                     </td>
-                                                    <td class="px-6 py-4">
-                                                        <div class="flex flex-col gap-1">
-                                                            @forelse($pendingBills as $bill)
-                                                                <form method="POST" action="{{ route('admin.bills.mark-paid', $bill) }}">
-                                                                    @csrf
-                                                                    @method('PATCH')
-                                                                    <button type="submit" id="btn-mark-paid-{{ $bill->id }}"
-                                                                        class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200 hover:bg-emerald-100 transition-all duration-200 cursor-pointer whitespace-nowrap"
-                                                                        onclick="return confirm('Tandai {{ $bill->paymentType->name ?? 'tagihan' }} sebagai lunas?')">
-                                                                        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12.75 11.25 15 15 9.75M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z"/></svg>
-                                                                        Lunas
-                                                                    </button>
-                                                                </form>
-                                                            @empty
-                                                                <span class="text-gray-300 text-xs">-</span>
-                                                            @endforelse
-                                                        </div>
-                                                    </td>
+
                                                 </tr>
                                             @endforeach
                                         </tbody>
@@ -822,6 +802,8 @@ function switchMainTab(contentId, button) {
     // Add active styles to clicked button
     button.classList.add('bg-white', 'shadow-sm', 'border', 'border-gray-200', 'text-primary-600');
     button.classList.remove('text-gray-500', 'hover:text-gray-700', 'hover:bg-white/60');
+}
+
 // Sub Tab Switching (Paid/Unpaid/Verify inside Laporan)
 function switchReportTab(tab) {
     const unpaidTable = document.getElementById('table-unpaid');
@@ -868,7 +850,6 @@ function toggleRejectForm(billId) {
     } else {
         form.classList.add('hidden');
     }
-}}
 }
 </script>
 @endsection

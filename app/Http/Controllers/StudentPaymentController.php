@@ -73,8 +73,8 @@ class StudentPaymentController extends Controller
             abort(403, 'Anda tidak memiliki akses ke tagihan ini.');
         }
 
-        // Only pending, overdue, or rejected bills can have proof uploaded
-        if (! in_array($bill->status, ['pending', 'overdue', 'rejected'])) {
+        // Only pending, overdue, rejected, or waiting_verification bills can have proof uploaded
+        if (! in_array($bill->status, ['pending', 'overdue', 'rejected', 'waiting_verification'])) {
             return back()->with('error', 'Bukti pembayaran tidak dapat diunggah untuk tagihan ini.');
         }
 

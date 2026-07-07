@@ -438,5 +438,35 @@ function autoTransitionToUpload() {
         switchTab('proof');
     }, 1500);
 }
+
+// Auto-refresh: poll every 15 seconds to check for status changes (realtime verification)
+let lastBillData = null;
+function checkForUpdates() {
+    fetch(window.location.href, {
+        headers: { 'X-Requested-With': 'XMLHttpRequest' }
+    })
+    .then(response => response.text())
+    .then(html => {
+        const parser = new DOMParser();
+        const doc = parser.parseFromString(html, 'text/html');
+        const newBillSection = doc.querySelector('#bill-status-section');
+        const currentBillSection = document.querySelector('#bill-status-section');
+        
+        if (newBillSection && currentBillSection) {
+            if (newBillSection.innerHTML !== currentBillSection.innerHTML) {
+                // Status changed! Update the section with a smooth transition
+                currentBillSection.style.opacity = '0.5';
+                setTimeout(() => {
+                    currentBillSection.innerHTML = newBillSection.innerHTML;
+                    currentBillSection.style.opacity = '1';
+                }, 300);
+            }
+        }
+    })
+    .catch(() => {}); // Silently fail on network errors
+}
+
+// Start polling every 15 seconds
+setInterval(checkForUpdates, 15000);
 </script>
 @endsection

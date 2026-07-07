@@ -6,7 +6,7 @@ use App\Http\Controllers\StudentPaymentController;
 use Illuminate\Support\Facades\Route;
 
 // Public routes — no auth required
-Route::get('/', [PaymentController::class, 'dashboard'])->name('dashboard');
+Route::redirect('/', '/admin/login')->name('dashboard');
 Route::get('/pembayaran/{slug}', [PaymentController::class, 'showPaymentForm'])->name('payment.form');
 Route::post('/api/search-student', [PaymentController::class, 'searchStudent'])->name('student.search');
 Route::post('/api/create-bill', [PaymentController::class, 'createBill'])->name('payment.create');
