@@ -6,6 +6,7 @@ use App\Models\Bill;
 use App\Models\PaymentType;
 use App\Models\Student;
 use App\Models\User;
+use App\Services\FonnteWhatsappService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -14,6 +15,8 @@ use Illuminate\View\View;
 
 class AdminController extends Controller
 {
+    public function __construct(protected FonnteWhatsappService $whatsAppService) {}
+
     /**
      * Show the login form.
      */
@@ -33,6 +36,7 @@ class AdminController extends Controller
 
     /**
      * Handle an authentication attempt.
+     * Supports login via NISN (siswa) or NIP (admin).
      */
     public function login(Request $request): RedirectResponse
     {
@@ -45,13 +49,15 @@ class AdminController extends Controller
         $password = $request->input('password');
         $remember = $request->boolean('remember');
 
-        // Check if login_id is email or NISN
-        $field = filter_var($loginId, FILTER_VALIDATE_EMAIL) ? 'email' : 'nisn';
+        // Try to find user by NISN first, then by NIP, then by email as fallback
+        $user = User::where('nisn', $loginId)
+            ->orWhere('nip', $loginId)
+            ->orWhere('email', $loginId)
+            ->first();
 
-        if (Auth::attempt([$field => $loginId, 'password' => $password], $remember)) {
+        if ($user && Auth::attempt(['email' => $user->email, 'password' => $password], $remember)) {
             $request->session()->regenerate();
 
-            $user = Auth::user();
             if ($user->role === 'admin') {
                 return redirect()->intended(route('admin.payment-report'));
             } else {
@@ -60,7 +66,7 @@ class AdminController extends Controller
         }
 
         return back()->withErrors([
-            'login_id' => 'Email/NISN atau password yang Anda masukkan salah.',
+            'login_id' => 'NISN/NIP atau password yang Anda masukkan salah.',
         ])->onlyInput('login_id');
     }
 
@@ -138,6 +144,12 @@ class AdminController extends Controller
         // Unique kelas for filter
         $kelasList = Student::distinct()->pluck('kelas')->sort()->values();
 
+        // Retrieve bills that are waiting for verification
+        $waitingVerificationBills = Bill::with(['student', 'paymentType'])
+            ->where('status', 'waiting_verification')
+            ->latest()
+            ->get();
+
         return view('admin.payment-report', compact(
             'paymentTypes',
             'paidStudents',
@@ -152,6 +164,7 @@ class AdminController extends Controller
             'totalBills',
             'paidBills',
             'kelasList',
+            'waitingVerificationBills',
         ));
     }
 
@@ -166,6 +179,69 @@ class AdminController extends Controller
         ]);
 
         return back()->with('success', "Tagihan {$bill->paymentType->name} untuk siswa {$bill->student->nama} berhasil ditandai lunas!");
+    }
+
+    /**
+     * Verify payment proof (admin action).
+     */
+    public function verifyPayment(Bill $bill): RedirectResponse
+    {
+        $bill->update([
+            'status' => 'paid',
+            'paid_at' => now(),
+        ]);
+
+        if ($bill->whatsapp_number) {
+            $message = "📢 *PEMBAYARAN BERHASIL DIVERIFIKASI - TK/PAUD WILDANI*\n"
+                ."━━━━━━━━━━━━━━━━━━━━━━\n\n"
+                ."Assalamu'alaikum,\n"
+                ."Pembayaran berikut telah diverifikasi dan dinyatakan *LUNAS*:\n\n"
+                ."👤 *Nama Siswa*: {$bill->student->nama}\n"
+                ."📌 *Jenis Tagihan*: {$bill->paymentType->name}\n"
+                .'💰 *Nominal*: Rp '.number_format($bill->amount, 0, ',', '.')."\n"
+                .'📅 *Tanggal Verifikasi*: '.now()->format('d M Y, H:i')."\n\n"
+                ."Terima kasih atas pembayaran yang telah dilakukan. 🙏\n\n"
+                ."Wassalamu'alaikum Wr. Wb.\n"
+                .'🏫 *TK/PAUD WILDANI*';
+
+            $this->whatsAppService->send($bill->whatsapp_number, $message);
+        }
+
+        return back()->with('success', "Pembayaran tagihan {$bill->paymentType->name} untuk siswa {$bill->student->nama} berhasil diverifikasi!");
+    }
+
+    /**
+     * Reject payment proof (admin action).
+     */
+    public function rejectPayment(Request $request, Bill $bill): RedirectResponse
+    {
+        $request->validate([
+            'rejected_reason' => ['required', 'string', 'max:255'],
+        ]);
+
+        $bill->update([
+            'status' => 'rejected',
+            'rejected_reason' => $request->input('rejected_reason'),
+        ]);
+
+        if ($bill->whatsapp_number) {
+            $message = "⚠️ *PEMBAYARAN DITOLAK - TK/PAUD WILDANI*\n"
+                ."━━━━━━━━━━━━━━━━━━━━━━\n\n"
+                ."Assalamu'alaikum,\n"
+                ."Mohon maaf, bukti pembayaran yang Anda unggah ditolak oleh admin dengan alasan:\n"
+                ."❌ *\"{$bill->rejected_reason}\"*\n\n"
+                ."Rincian tagihan:\n"
+                ."👤 *Nama Siswa*: {$bill->student->nama}\n"
+                ."📌 *Jenis Tagihan*: {$bill->paymentType->name}\n"
+                .'💰 *Nominal*: Rp '.number_format($bill->amount, 0, ',', '.')."\n\n"
+                ."Silakan masuk ke Portal Siswa untuk mengunggah ulang bukti transfer yang benar. Terima kasih.\n\n"
+                ."Wassalamu'alaikum Wr. Wb.\n"
+                .'🏫 *TK/PAUD WILDANI*';
+
+            $this->whatsAppService->send($bill->whatsapp_number, $message);
+        }
+
+        return back()->with('success', "Pembayaran tagihan {$bill->paymentType->name} untuk siswa {$bill->student->nama} berhasil ditolak.");
     }
 
     /**
@@ -206,7 +282,7 @@ class AdminController extends Controller
             'name' => $student->nama,
             'email' => strtolower(explode(' ', trim($student->nama))[0]).'_'.time().'@wildani.sch.id',
             'password' => bcrypt('siswa123'),
-            'role' => 'student',
+            'role' => 'siswa',
             'nisn' => $student->nisn,
             'student_id' => $student->id,
         ]);

@@ -17,13 +17,12 @@ class EnsureAdmin
      */
     public function handle(Request $request, Closure $next): Response
     {
-        if (! Auth::check() || Auth::user()->role !== 'admin') {
-            if (Auth::check()) {
-                // Authenticated but wrong role — redirect to student area
-                return redirect()->route('student.dashboard');
-            }
-
+        if (! Auth::check()) {
             return redirect()->route('login');
+        }
+
+        if (Auth::user()->role !== 'admin') {
+            abort(403, 'Anda tidak memiliki izin untuk mengakses halaman ini.');
         }
 
         return $next($request);

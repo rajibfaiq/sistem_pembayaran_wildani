@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\AdminController;
 use App\Http\Controllers\PaymentController;
+use App\Http\Controllers\StudentPaymentController;
 use Illuminate\Support\Facades\Route;
 
 // Public routes — no auth required
@@ -22,9 +23,13 @@ Route::middleware(['auth', 'admin'])->prefix('admin')->name('admin.')->group(fun
     Route::post('/students', [AdminController::class, 'storeStudent'])->name('students.store');
     Route::post('/bills', [AdminController::class, 'storeBill'])->name('bills.store');
     Route::patch('/bills/{bill}/mark-paid', [AdminController::class, 'markBillAsPaid'])->name('bills.mark-paid');
+    Route::patch('/bills/{bill}/verify', [AdminController::class, 'verifyPayment'])->name('bills.verify');
+    Route::patch('/bills/{bill}/reject', [AdminController::class, 'rejectPayment'])->name('bills.reject');
 });
 
-// Student routes — requires authenticated user with 'student' role
+// Siswa routes — requires authenticated user with 'siswa' role
 Route::middleware(['auth', 'student'])->prefix('student')->name('student.')->group(function () {
     Route::get('/dashboard', [AdminController::class, 'studentDashboard'])->name('dashboard');
+    Route::post('/bills/{bill}/pay', [StudentPaymentController::class, 'requestPayment'])->name('bills.pay');
+    Route::post('/bills/{bill}/upload-proof', [StudentPaymentController::class, 'uploadProof'])->name('bills.upload-proof');
 });

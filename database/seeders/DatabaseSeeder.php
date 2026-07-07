@@ -18,10 +18,13 @@ class DatabaseSeeder extends Seeder
      */
     public function run(): void
     {
+        // Admin account — login with NIP + password 'wildani123'
         User::factory()->create([
-            'name' => 'Test User',
-            'email' => 'test@example.com',
+            'name' => 'Administrator',
+            'email' => 'admin@wildani.sch.id',
+            'password' => bcrypt('wildani123'),
             'role' => 'admin',
+            'nip' => '198501012010011001',
         ]);
 
         // Payment types with specific icons and amounts
@@ -61,7 +64,7 @@ class DatabaseSeeder extends Seeder
             $createdTypes[] = PaymentType::create($type);
         }
 
-        // Sample students with Indonesian names
+        // Sample students — login with NISN + password 'siswa123'
         $students = [
             ['nisn' => '0051234001', 'nama' => 'Aisyah Putri Ramadhani', 'kelas' => 'TK A', 'parent_phone' => '081234567890'],
             ['nisn' => '0051234002', 'nama' => 'Muhammad Rizky Pratama', 'kelas' => 'TK B', 'parent_phone' => '082345678901'],
@@ -73,12 +76,12 @@ class DatabaseSeeder extends Seeder
         foreach ($students as $studentData) {
             $student = Student::create($studentData);
 
-            // Create student login account
+            // Create student login account — same password for all students
             User::create([
                 'name' => $student->nama,
                 'email' => strtolower(explode(' ', trim($student->nama))[0]).'@wildani.sch.id',
                 'password' => bcrypt('siswa123'),
-                'role' => 'student',
+                'role' => 'siswa',
                 'nisn' => $student->nisn,
                 'student_id' => $student->id,
             ]);

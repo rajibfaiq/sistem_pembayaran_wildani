@@ -55,6 +55,15 @@
             </div>
         @endif
 
+        @if(session('error'))
+            <div class="flex items-start gap-3 p-4 rounded-xl bg-red-50 border border-red-100 fade-in">
+                <svg class="w-5 h-5 text-red-500 shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126ZM12 15.75h.007v.008H12v-.008Z"/>
+                </svg>
+                <p class="text-sm text-red-700 font-medium">{{ session('error') }}</p>
+            </div>
+        @endif
+
         {{-- Profile + Stats --}}
         <div class="grid grid-cols-1 md:grid-cols-3 gap-5">
 
@@ -102,7 +111,7 @@
                         </div>
                         <div>
                             <p class="text-xs text-gray-400 font-medium uppercase tracking-wider">Tagihan Pending</p>
-                            <p class="text-2xl font-bold text-gray-900">{{ $pendingBills->count() }}</p>
+                            <p class="text-2xl font-bold text-gray-900">{{ $pendingBills->whereIn('status', ['pending', 'overdue', 'rejected'])->count() }}</p>
                         </div>
                     </div>
                 </div>
@@ -169,45 +178,74 @@
             @else
                 <div class="divide-y divide-gray-50">
                     @foreach($pendingBills as $bill)
-                        <div class="flex items-center gap-4 px-6 py-4 hover:bg-gray-50/60 transition-colors duration-150">
-                            {{-- Icon --}}
-                            <div class="w-10 h-10 rounded-xl bg-amber-50 flex items-center justify-center shrink-0">
-                                <svg class="w-5 h-5 text-amber-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M2.25 8.25h19.5M2.25 9h19.5m-16.5 5.25h6m-6 2.25h3m-3.75 3h15a2.25 2.25 0 0 0 2.25-2.25V6.75A2.25 2.25 0 0 0 19.5 4.5h-15a2.25 2.25 0 0 0-2.25 2.25v10.5A2.25 2.25 0 0 0 4.5 19.5Z"/>
-                                </svg>
-                            </div>
-
-                            {{-- Details --}}
-                            <div class="flex-1 min-w-0">
-                                <p class="font-semibold text-gray-800 text-sm truncate">
-                                    {{ $bill->paymentType->name ?? 'Tagihan' }}
-                                </p>
-                                @if($bill->due_date)
-                                    <p class="text-xs text-gray-400 mt-0.5">
-                                        Jatuh tempo: {{ $bill->due_date->format('d M Y') }}
-                                        @if($bill->due_date->isPast())
-                                            <span class="text-red-500 font-semibold">(Terlambat!)</span>
-                                        @elseif($bill->due_date->diffInDays(now()) <= 7)
-                                            <span class="text-amber-500 font-semibold">(Segera)</span>
-                                        @endif
+                        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 px-6 py-5 hover:bg-gray-50/60 transition-colors duration-150">
+                            {{-- Details & Icon --}}
+                            <div class="flex items-center gap-4 min-w-0">
+                                <div class="w-10 h-10 rounded-xl bg-amber-50 flex items-center justify-center shrink-0">
+                                    <svg class="w-5 h-5 text-amber-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M2.25 8.25h19.5M2.25 9h19.5m-16.5 5.25h6m-6 2.25h3m-3.75 3h15a2.25 2.25 0 0 0 2.25-2.25V6.75A2.25 2.25 0 0 0 19.5 4.5h-15a2.25 2.25 0 0 0-2.25 2.25v10.5A2.25 2.25 0 0 0 4.5 19.5Z"/>
+                                    </svg>
+                                </div>
+                                <div class="min-w-0">
+                                    <p class="font-semibold text-gray-800 text-sm truncate">
+                                        {{ $bill->paymentType->name ?? 'Tagihan' }}
                                     </p>
-                                @endif
+                                    @if($bill->due_date)
+                                        <p class="text-xs text-gray-400 mt-0.5">
+                                            Jatuh tempo: {{ $bill->due_date->format('d M Y') }}
+                                            @if($bill->due_date->isPast())
+                                                <span class="text-red-500 font-semibold">(Terlambat!)</span>
+                                            @elseif($bill->due_date->diffInDays(now()) <= 7)
+                                                <span class="text-amber-500 font-semibold">(Segera)</span>
+                                            @endif
+                                        </p>
+                                    @endif
+                                    @if($bill->status === 'rejected')
+                                        <p class="text-xs text-red-650 font-medium mt-1">
+                                            ⚠️ Penolakan Admin: <span class="italic">"{{ $bill->rejected_reason }}"</span>
+                                        </p>
+                                    @endif
+                                </div>
                             </div>
 
-                            {{-- Amount + Status --}}
-                            <div class="text-right shrink-0">
-                                <p class="font-bold text-gray-900 text-sm">
-                                    Rp {{ number_format($bill->amount, 0, ',', '.') }}
-                                </p>
-                                @if($bill->status === 'overdue')
-                                    <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-semibold bg-red-100 text-red-700 mt-1">
-                                        <span class="w-1.5 h-1.5 rounded-full bg-red-500"></span>Terlambat
-                                    </span>
-                                @else
-                                    <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-semibold bg-amber-100 text-amber-700 mt-1">
-                                        <span class="w-1.5 h-1.5 rounded-full bg-amber-500 animate-pulse"></span>Pending
-                                    </span>
-                                @endif
+                            {{-- Price & Actions --}}
+                            <div class="flex items-center justify-between sm:justify-end gap-6 shrink-0">
+                                <div class="text-left sm:text-right">
+                                    <p class="font-bold text-gray-900 text-sm">
+                                        Rp {{ number_format($bill->amount, 0, ',', '.') }}
+                                    </p>
+                                    @if($bill->status === 'overdue')
+                                        <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-semibold bg-red-100 text-red-700 mt-1">
+                                            <span class="w-1.5 h-1.5 rounded-full bg-red-500"></span>Terlambat
+                                        </span>
+                                    @elseif($bill->status === 'waiting_verification')
+                                        <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-semibold bg-blue-100 text-blue-700 mt-1">
+                                            <span class="w-1.5 h-1.5 rounded-full bg-blue-500 animate-pulse"></span>Menunggu Verifikasi
+                                        </span>
+                                    @elseif($bill->status === 'rejected')
+                                        <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-semibold bg-red-50 text-red-650 mt-1">
+                                            <span class="w-1.5 h-1.5 rounded-full bg-red-500"></span>Ditolak
+                                        </span>
+                                    @else
+                                        <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-semibold bg-amber-100 text-amber-700 mt-1">
+                                            <span class="w-1.5 h-1.5 rounded-full bg-amber-500 animate-pulse"></span>Pending
+                                        </span>
+                                    @endif
+                                </div>
+
+                                <div>
+                                    @if($bill->status === 'waiting_verification')
+                                        <a href="{{ asset('storage/' . $bill->payment_proof) }}" target="_blank"
+                                            class="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl border border-blue-200 bg-blue-50 text-blue-700 text-xs font-semibold hover:bg-blue-100 transition-all duration-200 cursor-pointer">
+                                            Lihat Bukti
+                                        </a>
+                                    @else
+                                        <button onclick="openPaymentModal({{ $bill->id }}, '{{ $bill->paymentType->name ?? 'Tagihan' }}', {{ (int)$bill->amount }}, '{{ $bill->whatsapp_number ?? $student->parent_phone ?? '' }}')"
+                                            class="inline-flex items-center gap-1.5 px-5 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold shadow-md shadow-emerald-600/20 hover:shadow-emerald-600/40 hover:-translate-y-0.5 transition-all duration-200 cursor-pointer">
+                                            Bayar Sekarang
+                                        </button>
+                                    @endif
+                                </div>
                             </div>
                         </div>
                     @endforeach
@@ -219,7 +257,7 @@
                         <svg class="w-3.5 h-3.5 inline mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11.25 11.25l.041-.02a.75.75 0 0 1 1.063.852l-.708 2.836a.75.75 0 0 0 1.063.853l.041-.021M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Zm-9-3.75h.008v.008H12V8.25Z"/>
                         </svg>
-                        Hubungi pihak sekolah atau admin untuk melakukan pembayaran.
+                        Pilih "Bayar Sekarang" untuk menghubungi WhatsApp sekolah & unggah bukti transfer.
                     </p>
                     <p class="text-xs font-bold text-amber-800">
                         Total: Rp {{ number_format($totalTagihan, 0, ',', '.') }}
@@ -282,4 +320,123 @@
 
     </main>
 </div>
+
+{{-- Payment Modal --}}
+<div id="payment-modal" class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm hidden">
+    <div class="glass-card w-full max-w-md overflow-hidden bg-white/95 shadow-2xl relative">
+        {{-- Close button --}}
+        <button onclick="closePaymentModal()" class="absolute top-4 right-4 text-gray-400 hover:text-gray-600 transition-colors">
+            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+            </svg>
+        </button>
+
+        <div class="px-6 pt-6 pb-4 border-b border-gray-100">
+            <h3 class="text-lg font-bold text-gray-800" id="modal-title">Bayar Tagihan</h3>
+            <p class="text-xs text-gray-400 mt-1" id="modal-amount-label">Nominal: Rp 0</p>
+        </div>
+
+        {{-- Step Navigation Tab --}}
+        <div class="flex border-b border-gray-100 text-xs font-semibold">
+            <button onclick="switchTab('wa')" id="btn-tab-wa" class="flex-1 py-3 text-center border-b-2 border-emerald-600 text-emerald-600 bg-emerald-50/30">
+                1. Minta Rekening (WA)
+            </button>
+            <button onclick="switchTab('proof')" id="btn-tab-proof" class="flex-1 py-3 text-center border-b-2 border-transparent text-gray-500 hover:bg-gray-50/50">
+                2. Unggah Struk Bukti
+            </button>
+        </div>
+
+        <div class="p-6 space-y-4">
+            {{-- Tab 1: WA Request --}}
+            <div id="tab-content-wa" class="space-y-4">
+                <p class="text-xs text-gray-500 leading-relaxed">
+                    Sistem akan mengirimkan pesan WhatsApp berisi instruksi lengkap beserta detail rekening transfer ke nomor Anda melalui layanan Fonnte. Silakan masukkan nomor WhatsApp Anda di bawah ini:
+                </p>
+                <form id="pay-wa-form" method="POST" class="space-y-3">
+                    @csrf
+                    <div>
+                        <label for="whatsapp_number" class="block text-xxs font-bold text-gray-650 mb-1 uppercase">Nomor WhatsApp</label>
+                        <input type="text" id="whatsapp_number" name="whatsapp_number" required placeholder="Contoh: 081234567890"
+                            class="w-full px-3 py-2 rounded-lg border border-gray-200 bg-white/70 text-sm focus:outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-100 transition-all">
+                    </div>
+                    <button type="submit" onclick="autoTransitionToUpload()"
+                        class="w-full py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-semibold text-xs shadow-md shadow-emerald-600/10 flex items-center justify-center gap-1.5 transition-all cursor-pointer">
+                        <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 24 24"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413Z"/></svg>
+                        Kirim Instruksi Pembayaran
+                    </button>
+                </form>
+            </div>
+
+            {{-- Tab 2: Proof upload --}}
+            <div id="tab-content-proof" class="space-y-4 hidden">
+                <p class="text-xs text-gray-500 leading-relaxed">
+                    Sudah melakukan transfer? Silakan unggah foto/gambar bukti transfer Anda untuk diverifikasi oleh admin sekolah.
+                </p>
+                <form id="upload-proof-form" method="POST" enctype="multipart/form-data" class="space-y-3">
+                    @csrf
+                    <div>
+                        <label for="payment_proof" class="block text-xxs font-bold text-gray-650 mb-1 uppercase">Pilih File Bukti</label>
+                        <input type="file" id="payment_proof" name="payment_proof" accept="image/*" required
+                            class="w-full text-xs text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-xl file:border-0 file:text-xs file:font-semibold file:bg-primary-50 file:text-primary-700 hover:file:bg-primary-100 cursor-pointer">
+                        <p class="text-gray-400 text-xxs mt-1">Hanya gambar (JPG, JPEG, PNG). Maksimal 2 MB.</p>
+                    </div>
+                    <button type="submit"
+                        class="w-full py-2.5 rounded-xl bg-primary-600 hover:bg-primary-700 text-white font-semibold text-xs shadow-md transition-all">
+                        Unggah & Ajukan Verifikasi
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+function openPaymentModal(billId, billName, amount, waNumber) {
+    const modal = document.getElementById('payment-modal');
+    modal.classList.remove('hidden');
+
+    document.getElementById('modal-title').textContent = 'Bayar: ' + billName;
+    document.getElementById('modal-amount-label').textContent = 'Nominal: Rp ' + new Intl.NumberFormat('id-ID').format(amount);
+    
+    // Set form actions
+    document.getElementById('pay-wa-form').action = '/student/bills/' + billId + '/pay';
+    document.getElementById('upload-proof-form').action = '/student/bills/' + billId + '/upload-proof';
+    
+    // Set WhatsApp number input
+    document.getElementById('whatsapp_number').value = waNumber;
+
+    // Reset default view to WA tab
+    switchTab('wa');
+}
+
+function closePaymentModal() {
+    document.getElementById('payment-modal').classList.add('hidden');
+}
+
+function switchTab(tab) {
+    const tabWa = document.getElementById('btn-tab-wa');
+    const tabProof = document.getElementById('btn-tab-proof');
+    const contentWa = document.getElementById('tab-content-wa');
+    const contentProof = document.getElementById('tab-content-proof');
+
+    if (tab === 'wa') {
+        tabWa.className = "flex-1 py-3 text-center border-b-2 border-emerald-600 text-emerald-600 bg-emerald-50/30";
+        tabProof.className = "flex-1 py-3 text-center border-b-2 border-transparent text-gray-500 hover:bg-gray-50/50";
+        contentWa.classList.remove('hidden');
+        contentProof.classList.add('hidden');
+    } else {
+        tabWa.className = "flex-1 py-3 text-center border-b-2 border-transparent text-gray-500 hover:bg-gray-50/50";
+        tabProof.className = "flex-1 py-3 text-center border-b-2 border-primary-600 text-primary-600 bg-primary-50/30";
+        contentWa.classList.add('hidden');
+        contentProof.classList.remove('hidden');
+    }
+}
+
+function autoTransitionToUpload() {
+    // When user clicks the WA redirect, wait a short moment then switch tabs to step 2 so they can easily upload proof when they return
+    setTimeout(() => {
+        switchTab('proof');
+    }, 1500);
+}
+</script>
 @endsection

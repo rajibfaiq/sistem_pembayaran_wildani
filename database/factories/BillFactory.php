@@ -48,4 +48,28 @@ class BillFactory extends Factory
             'paid_at' => null,
         ]);
     }
+
+    /**
+     * Indicate the bill is waiting verification.
+     */
+    public function waitingVerification(): static
+    {
+        return $this->state(fn (array $attributes): array => [
+            'status' => 'waiting_verification',
+            'payment_proof' => 'payment-proofs/sample.jpg',
+            'whatsapp_number' => '08123456789',
+        ]);
+    }
+
+    /**
+     * Indicate the bill was rejected.
+     */
+    public function rejected(): static
+    {
+        return $this->state(fn (array $attributes): array => [
+            'status' => 'rejected',
+            'rejected_reason' => 'Bukti bayar tidak terbaca.',
+            'whatsapp_number' => '08123456789',
+        ]);
+    }
 }

@@ -228,16 +228,24 @@
                 </div>
             </section>
 
-            {{-- Table Nav Tab (Paid / Unpaid) --}}
+            {{-- Table Nav Tab (Paid / Unpaid / Verify) --}}
             <section class="px-6 pb-2 lg:px-10">
                 <div class="max-w-7xl mx-auto">
-                    <div class="flex gap-2">
+                    <div class="flex gap-2 flex-wrap">
                         <button id="tab-unpaid" onclick="switchReportTab('unpaid')"
                             class="report-tab-btn flex items-center gap-2 px-5 py-2 rounded-xl text-sm font-semibold transition-all duration-200 bg-white shadow-sm border border-gray-200 text-gray-700 cursor-pointer">
                             <span class="w-2 h-2 rounded-full bg-amber-400 inline-block"></span>
                             Belum Bayar
                             <span class="ml-1 inline-flex items-center justify-center w-5 h-5 rounded-full bg-amber-100 text-amber-700 text-xs font-bold">
                                 {{ $unpaidStudents->count() }}
+                            </span>
+                        </button>
+                        <button id="tab-verify" onclick="switchReportTab('verify')"
+                            class="report-tab-btn flex items-center gap-2 px-5 py-2 rounded-xl text-sm font-semibold transition-all duration-200 text-gray-500 hover:text-gray-700 hover:bg-white/60 cursor-pointer">
+                            <span class="w-2 h-2 rounded-full bg-blue-500 inline-block"></span>
+                            Menunggu Verifikasi
+                            <span class="ml-1 inline-flex items-center justify-center w-5 h-5 rounded-full bg-blue-100 text-blue-700 text-xs font-bold">
+                                {{ $waitingVerificationBills->count() }}
                             </span>
                         </button>
                         <button id="tab-paid" onclick="switchReportTab('paid')"
@@ -384,6 +392,110 @@
                                             @endforeach
                                         </tbody>
 
+                                    </table>
+                                </div>
+                            @endif
+                        </div>
+                    </div>
+
+                    {{-- Menunggu Verifikasi Table --}}
+                    <div id="table-verify" class="fade-in hidden">
+                        <div class="glass-card overflow-hidden">
+                            <div class="px-6 py-4 border-b border-gray-100 flex items-center justify-between">
+                                <div class="flex items-center gap-3">
+                                    <div class="w-3 h-3 rounded-full bg-blue-500"></div>
+                                    <h2 class="font-semibold text-gray-800">Menunggu Verifikasi Pembayaran</h2>
+                                </div>
+                                <span class="text-sm text-gray-400">{{ $waitingVerificationBills->count() }} transaksi menunggu</span>
+                            </div>
+
+                            @if($waitingVerificationBills->isEmpty())
+                                <div class="flex flex-col items-center justify-center py-16 text-gray-400">
+                                    <svg class="w-12 h-12 mb-3 opacity-40" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 12.75 11.25 15 15 9.75M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z"/>
+                                    </svg>
+                                    <p class="text-sm font-medium">Tidak ada pembayaran yang menunggu verifikasi saat ini. 🎉</p>
+                                </div>
+                            @else
+                                <div class="overflow-x-auto">
+                                    <table class="w-full text-sm">
+                                        <thead>
+                                            <tr class="bg-gray-50/80">
+                                                <th class="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Siswa</th>
+                                                <th class="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Jenis Tagihan</th>
+                                                <th class="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Nominal</th>
+                                                <th class="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">WhatsApp</th>
+                                                <th class="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Bukti Transfer</th>
+                                                <th class="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Aksi</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody class="divide-y divide-gray-100">
+                                            @foreach($waitingVerificationBills as $bill)
+                                                <tr class="hover:bg-gray-50/60 transition-colors duration-150">
+                                                    <td class="px-6 py-4">
+                                                        <p class="font-semibold text-gray-805">{{ $bill->student->nama ?? '-' }}</p>
+                                                        <p class="text-xxs text-gray-400 font-mono mt-0.5">NISN: {{ $bill->student->nisn ?? '-' }} | {{ $bill->student->kelas ?? '-' }}</p>
+                                                    </td>
+                                                    <td class="px-6 py-4">
+                                                        <span class="inline-flex items-center px-2 py-0.5 rounded-md text-xs font-medium bg-blue-50 text-blue-700 border border-blue-100">
+                                                            {{ $bill->paymentType->name ?? '-' }}
+                                                        </span>
+                                                    </td>
+                                                    <td class="px-6 py-4 font-semibold text-gray-800">
+                                                        Rp {{ number_format($bill->amount, 0, ',', '.') }}
+                                                    </td>
+                                                    <td class="px-6 py-4 text-xs font-medium">
+                                                        @if($bill->whatsapp_number)
+                                                            <a href="https://wa.me/{{ preg_replace('/^0/', '62', $bill->whatsapp_number) }}" target="_blank"
+                                                                class="inline-flex items-center gap-1 text-emerald-600 hover:text-emerald-700 hover:underline">
+                                                                {{ $bill->whatsapp_number }}
+                                                            </a>
+                                                        @else
+                                                            <span class="text-gray-350">-</span>
+                                                        @endif
+                                                    </td>
+                                                    <td class="px-6 py-4">
+                                                        @if($bill->payment_proof)
+                                                            <a href="{{ asset('storage/' . $bill->payment_proof) }}" target="_blank" class="block w-16 h-12 rounded-lg overflow-hidden border border-gray-200 hover:opacity-80 transition-opacity">
+                                                                <img src="{{ asset('storage/' . $bill->payment_proof) }}" alt="Bukti Transfer" class="w-full h-full object-cover">
+                                                            </a>
+                                                        @else
+                                                            <span class="text-gray-450">Tidak ada</span>
+                                                        @endif
+                                                    </td>
+                                                    <td class="px-6 py-4">
+                                                        <div class="flex items-center gap-2">
+                                                            {{-- Verify Form --}}
+                                                            <form method="POST" action="{{ route('admin.bills.verify', $bill) }}">
+                                                                @csrf
+                                                                @method('PATCH')
+                                                                <button type="submit" class="px-3.5 py-2 rounded-lg text-xs font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200 hover:bg-emerald-100 transition-all cursor-pointer">
+                                                                    Verifikasi
+                                                                </button>
+                                                            </form>
+
+                                                            {{-- Reject Trigger --}}
+                                                            <button onclick="toggleRejectForm({{ $bill->id }})" class="px-3.5 py-2 rounded-lg text-xs font-semibold bg-red-50 text-red-650 border border-red-200 hover:bg-red-105 hover:text-red-700 transition-all cursor-pointer">
+                                                                Tolak
+                                                            </button>
+                                                        </div>
+
+                                                        {{-- Reject Form --}}
+                                                        <div id="reject-form-{{ $bill->id }}" class="hidden mt-3 max-w-xs">
+                                                            <form method="POST" action="{{ route('admin.bills.reject', $bill) }}" class="flex items-center gap-1.5">
+                                                                @csrf
+                                                                @method('PATCH')
+                                                                <input type="text" name="rejected_reason" required placeholder="Alasan penolakan..."
+                                                                    class="px-2.5 py-1.5 text-xs rounded-lg border border-gray-250 focus:outline-none focus:border-red-500 focus:ring-1 focus:ring-red-100 w-full text-gray-800">
+                                                                <button type="submit" class="px-3 py-1.5 bg-red-650 hover:bg-red-700 text-white rounded-lg text-xs font-semibold transition-all cursor-pointer">
+                                                                    Kirim
+                                                                </button>
+                                                            </form>
+                                                        </div>
+                                                    </td>
+                                                </tr>
+                                            @endforeach
+                                        </tbody>
                                     </table>
                                 </div>
                             @endif
@@ -710,30 +822,53 @@ function switchMainTab(contentId, button) {
     // Add active styles to clicked button
     button.classList.add('bg-white', 'shadow-sm', 'border', 'border-gray-200', 'text-primary-600');
     button.classList.remove('text-gray-500', 'hover:text-gray-700', 'hover:bg-white/60');
-}
-
-// Sub Tab Switching (Paid/Unpaid inside Laporan)
+// Sub Tab Switching (Paid/Unpaid/Verify inside Laporan)
 function switchReportTab(tab) {
     const unpaidTable = document.getElementById('table-unpaid');
     const paidTable = document.getElementById('table-paid');
+    const verifyTable = document.getElementById('table-verify');
+    
     const unpaidBtn = document.getElementById('tab-unpaid');
     const paidBtn = document.getElementById('tab-paid');
+    const verifyBtn = document.getElementById('tab-verify');
+
+    // Hide all tables
+    unpaidTable.classList.add('hidden');
+    paidTable.classList.add('hidden');
+    verifyTable.classList.add('hidden');
+
+    // Reset button styles
+    [unpaidBtn, paidBtn, verifyBtn].forEach(btn => {
+        if (btn) {
+            btn.classList.remove('bg-white', 'shadow-sm', 'border', 'border-gray-200', 'text-gray-700');
+            btn.classList.add('text-gray-500', 'hover:text-gray-700', 'hover:bg-white/60');
+        }
+    });
 
     if (tab === 'unpaid') {
         unpaidTable.classList.remove('hidden');
-        paidTable.classList.add('hidden');
         unpaidBtn.classList.add('bg-white', 'shadow-sm', 'border', 'border-gray-200', 'text-gray-700');
         unpaidBtn.classList.remove('text-gray-500', 'hover:text-gray-700', 'hover:bg-white/60');
-        paidBtn.classList.remove('bg-white', 'shadow-sm', 'border', 'border-gray-200', 'text-gray-700');
-        paidBtn.classList.add('text-gray-500', 'hover:text-gray-700', 'hover:bg-white/60');
-    } else {
+    } else if (tab === 'paid') {
         paidTable.classList.remove('hidden');
-        unpaidTable.classList.add('hidden');
         paidBtn.classList.add('bg-white', 'shadow-sm', 'border', 'border-gray-200', 'text-gray-700');
         paidBtn.classList.remove('text-gray-500', 'hover:text-gray-700', 'hover:bg-white/60');
-        unpaidBtn.classList.remove('bg-white', 'shadow-sm', 'border', 'border-gray-200', 'text-gray-700');
-        unpaidBtn.classList.add('text-gray-500', 'hover:text-gray-700', 'hover:bg-white/60');
+    } else if (tab === 'verify') {
+        verifyTable.classList.remove('hidden');
+        verifyBtn.classList.add('bg-white', 'shadow-sm', 'border', 'border-gray-200', 'text-gray-700');
+        verifyBtn.classList.remove('text-gray-500', 'hover:text-gray-700', 'hover:bg-white/60');
     }
+}
+
+// Rejection Form Toggle
+function toggleRejectForm(billId) {
+    const form = document.getElementById('reject-form-' + billId);
+    if (form.classList.contains('hidden')) {
+        form.classList.remove('hidden');
+    } else {
+        form.classList.add('hidden');
+    }
+}}
 }
 </script>
 @endsection

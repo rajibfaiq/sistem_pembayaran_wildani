@@ -31,6 +31,7 @@ class User extends Authenticatable
         'role',
         'student_id',
         'nisn',
+        'nip',
     ];
 
     /**
@@ -62,6 +63,14 @@ class User extends Authenticatable
     public function isAdmin(): bool
     {
         return $this->role === 'admin';
+    }
+
+    /**
+     * Check if user is siswa.
+     */
+    public function isSiswa(): bool
+    {
+        return $this->role === 'siswa';
     }
 
     /**

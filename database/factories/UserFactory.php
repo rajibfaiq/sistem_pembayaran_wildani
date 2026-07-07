@@ -34,6 +34,29 @@ class UserFactory extends Factory
     }
 
     /**
+     * Create an admin user with NIP.
+     */
+    public function admin(): static
+    {
+        return $this->state(fn (array $attributes) => [
+            'role' => 'admin',
+            'nip' => fake()->unique()->numerify('##################'),
+        ]);
+    }
+
+    /**
+     * Create a siswa user with NISN.
+     */
+    public function siswa(): static
+    {
+        return $this->state(fn (array $attributes) => [
+            'role' => 'siswa',
+            'nisn' => fake()->unique()->numerify('##########'),
+            'password' => Hash::make('siswa123'),
+        ]);
+    }
+
+    /**
      * Indicate that the model's email address should be unverified.
      */
     public function unverified(): static

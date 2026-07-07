@@ -18,6 +18,9 @@ class Bill extends Model
         'status',
         'due_date',
         'paid_at',
+        'payment_proof',
+        'whatsapp_number',
+        'rejected_reason',
     ];
 
     /**
@@ -30,6 +33,14 @@ class Bill extends Model
             'due_date' => 'date',
             'paid_at' => 'datetime',
         ];
+    }
+
+    /**
+     * Check if bill is awaiting admin verification.
+     */
+    public function isWaitingVerification(): bool
+    {
+        return $this->status === 'waiting_verification';
     }
 
     /**

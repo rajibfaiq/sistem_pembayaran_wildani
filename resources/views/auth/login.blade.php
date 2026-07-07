@@ -3,8 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="description" content="Login Admin - Sistem Informasi Layanan Pembayaran TK/PAUD Wildani">
-    <title>Login Admin - WILDANI</title>
+    <meta name="description" content="Login - Sistem Informasi Layanan Pembayaran TK/PAUD Wildani">
+    <title>Login - Tagihan Siswa WILDANI</title>
 
     {{-- Google Fonts - Inter --}}
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -33,7 +33,7 @@
                 </svg>
             </div>
             <h1 class="text-2xl font-bold text-gray-900">Masuk ke WILDANI</h1>
-            <p class="text-gray-500 text-sm mt-1">Silakan masuk menggunakan Email (Admin) atau NISN (Siswa)</p>
+            <p class="text-gray-500 text-sm mt-1">Masukkan NISN (Siswa) atau NIP (Admin) beserta password</p>
         </div>
 
         {{-- Login Card --}}
@@ -55,9 +55,9 @@
             <form id="login-form" method="POST" action="{{ route('login') }}" class="space-y-5">
                 @csrf
 
-                {{-- Email / NISN --}}
+                {{-- NISN / NIP --}}
                 <div>
-                    <label for="login_id" class="block text-sm font-semibold text-gray-700 mb-1.5">Email / NISN</label>
+                    <label for="login_id" class="block text-sm font-semibold text-gray-700 mb-1.5">NISN / NIP</label>
                     <div class="relative">
                         <div class="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none">
                             <svg class="w-4.5 h-4.5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -69,7 +69,7 @@
                             id="login_id"
                             name="login_id"
                             value="{{ old('login_id') }}"
-                            placeholder="Email admin atau NISN siswa..."
+                            placeholder="Masukkan NISN atau NIP..."
                             required
                             autocomplete="username"
                             class="w-full pl-10 pr-4 py-2.5 rounded-xl border border-gray-200 bg-white/70 text-gray-800 text-sm placeholder-gray-400 focus:outline-none focus:border-primary-400 focus:ring-2 focus:ring-primary-100 transition-all duration-200 @error('login_id') border-red-400 @enderror"

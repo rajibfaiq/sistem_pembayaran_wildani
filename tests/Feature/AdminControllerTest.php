@@ -19,36 +19,59 @@ class AdminControllerTest extends TestCase
 
         $response->assertStatus(200);
         $response->assertSee('Masuk ke WILDANI');
-        $response->assertSee('NISN');
+        $response->assertSee('NISN / NIP');
         $response->assertSee('Password');
     }
 
-    public function test_admin_can_login_with_correct_credentials(): void
+    public function test_admin_can_login_with_nip(): void
     {
         $user = User::factory()->create([
             'email' => 'admin@wildani.sch.id',
-            'password' => bcrypt('password123'),
+            'password' => bcrypt('wildani123'),
             'role' => 'admin',
+            'nip' => '198501012010011001',
         ]);
 
         $response = $this->post(route('login'), [
-            'login_id' => 'admin@wildani.sch.id',
-            'password' => 'password123',
+            'login_id' => '198501012010011001',
+            'password' => 'wildani123',
         ]);
 
         $response->assertRedirect(route('admin.payment-report'));
         $this->assertAuthenticatedAs($user);
     }
 
-    public function test_admin_cannot_login_with_incorrect_credentials(): void
+    public function test_siswa_can_login_with_nisn(): void
     {
-        User::factory()->create([
-            'email' => 'admin@wildani.sch.id',
-            'password' => bcrypt('password123'),
+        $student = Student::factory()->create(['nisn' => '0051234001']);
+        $user = User::factory()->create([
+            'email' => 'aisyah@wildani.sch.id',
+            'password' => bcrypt('siswa123'),
+            'role' => 'siswa',
+            'nisn' => '0051234001',
+            'student_id' => $student->id,
         ]);
 
         $response = $this->post(route('login'), [
-            'login_id' => 'admin@wildani.sch.id',
+            'login_id' => '0051234001',
+            'password' => 'siswa123',
+        ]);
+
+        $response->assertRedirect(route('student.dashboard'));
+        $this->assertAuthenticatedAs($user);
+    }
+
+    public function test_user_cannot_login_with_incorrect_credentials(): void
+    {
+        User::factory()->create([
+            'email' => 'admin@wildani.sch.id',
+            'password' => bcrypt('wildani123'),
+            'role' => 'admin',
+            'nip' => '198501012010011001',
+        ]);
+
+        $response = $this->post(route('login'), [
+            'login_id' => '198501012010011001',
             'password' => 'wrongpassword',
         ]);
 
@@ -56,7 +79,7 @@ class AdminControllerTest extends TestCase
         $this->assertGuest();
     }
 
-    public function test_unauthenticated_user_cannot_access_report(): void
+    public function test_unauthenticated_user_cannot_access_admin_report(): void
     {
         $response = $this->get(route('admin.payment-report'));
 
@@ -78,13 +101,27 @@ class AdminControllerTest extends TestCase
         $this->assertGuest();
     }
 
-    public function test_student_user_cannot_access_admin_report(): void
+    public function test_siswa_cannot_access_admin_report_gets_403(): void
     {
-        $user = User::factory()->create(['role' => 'student']);
+        $student = Student::factory()->create();
+        $user = User::factory()->create([
+            'role' => 'siswa',
+            'student_id' => $student->id,
+            'nisn' => $student->nisn,
+        ]);
 
         $response = $this->actingAs($user)->get(route('admin.payment-report'));
 
-        $response->assertRedirect(route('student.dashboard'));
+        $response->assertStatus(403);
+    }
+
+    public function test_admin_cannot_access_student_dashboard_gets_403(): void
+    {
+        $user = User::factory()->create(['role' => 'admin']);
+
+        $response = $this->actingAs($user)->get(route('student.dashboard'));
+
+        $response->assertStatus(403);
     }
 
     public function test_report_shows_student_payments_correctly(): void
@@ -123,5 +160,28 @@ class AdminControllerTest extends TestCase
         // Budi Sudarsono (paid) should also be present in the view's HTML context for the paid tab
         $response->assertSee('Budi Sudarsono');
         $response->assertSee('TK A');
+    }
+
+    public function test_already_logged_in_admin_visiting_login_page_redirects(): void
+    {
+        $user = User::factory()->create(['role' => 'admin']);
+
+        $response = $this->actingAs($user)->get(route('login'));
+
+        $response->assertRedirect(route('admin.payment-report'));
+    }
+
+    public function test_already_logged_in_siswa_visiting_login_page_redirects(): void
+    {
+        $student = Student::factory()->create();
+        $user = User::factory()->create([
+            'role' => 'siswa',
+            'student_id' => $student->id,
+            'nisn' => $student->nisn,
+        ]);
+
+        $response = $this->actingAs($user)->get(route('login'));
+
+        $response->assertRedirect(route('student.dashboard'));
     }
 }
